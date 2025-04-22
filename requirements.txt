@@ -4,3 +4,4 @@ instaloader==4.10.2
 requests==2.28.2
 pydantic==1.10.2
 flask
+python-dotenv

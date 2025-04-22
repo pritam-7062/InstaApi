@@ -7,7 +7,7 @@ from keep_alive import keep_alive
 keep_alive()
 
 # Your bot token
-API_TOKEN = "7300786908:AAGwzBDtx8JBhGd0X5X9Omp2h1JUs8BHgWg"  # Replace with actual bot token
+API_TOKEN = "7691181086:AAHQSO2eOqIac2PG5mn-jGP4TVCvONq0a80"  # Replace with actual bot token
 
 
 

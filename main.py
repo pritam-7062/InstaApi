@@ -3,27 +3,25 @@ import requests
 from fastapi import FastAPI, Query
 from pydantic import BaseModel
 from typing import Optional
-import os
-from dotenv import load_dotenv
 from keep_alive import keep_alive
 keep_alive()
-
-# Load environment variables from a .env file
-load_dotenv()
-
-# Fetch proxy from environment variables
-PROXY_URL = os.getenv("PROXY_URL", "")  # You can specify this in your .env file
 
 # FastAPI app initialization
 app = FastAPI()
 x = instaloader.Instaloader()
 
-# Set the proxy for Instaloader (if available)
-if PROXY_URL:
-    x.context.proxy = PROXY_URL
-    print(f"Using proxy: {PROXY_URL}")
-else:
-    print("No proxy set, using default connection.")
+# Set the proxy for Instaloader
+PROXY = {
+    "http": "http://xvcgftgw-rotate:9vm1bt8kvocy@p.webshare.io:80",
+    "https": "http://xvcgftgw-rotate:9vm1bt8kvocy@p.webshare.io:80"
+}
+
+# Set proxy for requests (if you plan to use requests directly with proxy)
+requests_session = requests.Session()
+requests_session.proxies.update(PROXY)
+
+# Set the proxy for Instaloader (using requests session)
+x.context.session.proxies.update(PROXY)
 
 # Calculate account creation year from user ID
 def date(hy):
@@ -52,7 +50,7 @@ def get_reset_usr(username):
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
         }
         data = {"query": username}
-        response = requests.post(url, headers=headers, data=data)
+        response = requests_session.post(url, headers=headers, data=data)  # Use the proxy session here
         return response.json().get("email", "Not Available") if response.status_code == 200 else "Hidden or Not Available"
     except:
         return "Error fetching email"

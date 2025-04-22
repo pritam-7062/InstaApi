@@ -2,6 +2,8 @@ import requests
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 import logging
+from keep_alive import keep_alive
+keep_alive()
 
 # Your bot token
 API_TOKEN = "7300786908:AAGwzBDtx8JBhGd0X5X9Omp2h1JUs8BHgWg"  # Replace with actual bot token

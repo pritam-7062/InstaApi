@@ -44,9 +44,17 @@ def get_reset_email(username: str) -> str:
     try:
         url = "https://i.instagram.com/api/v1/accounts/send_recovery_flow_email/"
         headers = {
-            "User-Agent": "Instagram 295.0.0.19.119",
-            "x-ig-app-id": "936619743392459",
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+            'authority': 'www.instagram.com',
+            'accept': '*/*',
+            'accept-language': 'eng',
+            'content-type': 'application/x-www-form-urlencoded',
+            'cookie': 'csrftoken=vEG96oJnlEsyUWNS53bHLkVTMFYQKCBV; ig_did=5D80D38A-797B-482D-A407-4B51217E09E7; ig_nrcb=1; mid=ZEqtPgALAAE-IVt6zG-ZazKzI4qN; datr=jrJKZGOaV4gHwa-Znj2QCVyB',
+            'origin': 'https://www.instagram.com',
+            'referer': 'https://www.instagram.com/accounts/password/reset/?next=%2Faccounts%2Flogout%2F',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36',
+            'x-csrftoken': 'vEG96oJnlEsyUWNS53bHLkVTMFYQKCBV',
+            'x-ig-app-id': '936619743392459',
+            'x-instagram-ajax': '1007389883',
         }
         data = {"query": username}
         res = requests_session.post(url, headers=headers, data=data)

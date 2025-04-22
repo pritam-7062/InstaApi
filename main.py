@@ -1,9 +1,12 @@
-from flask import Flask, request, jsonify
 import requests
-from keep_alive import keep_alive
-keep_alive()
+from telegram import Update
+from telegram.ext import Application, CommandHandler, ContextTypes
+import logging
 
-app = Flask(__name__)
+# Your bot token
+API_TOKEN = "7300786908:AAGwzBDtx8JBhGd0X5X9Omp2h1JUs8BHgWg"  # Replace with actual bot token
+
+
 
 def date(hy: int):
     try:
@@ -39,15 +42,16 @@ def get_instagram_info(username):
     try:
         headers = {
             'authority': 'www.instagram.com',
-            'accept': '*/*',
-            'accept-language': 'en-US,en;q=0.9',
-            'content-type': 'application/x-www-form-urlencoded',
-            'origin': 'https://www.instagram.com',
-            'referer': 'https://www.instagram.com/',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-            'x-ig-app-id': '936619743392459',
-            'x-requested-with': 'XMLHttpRequest',
-            'cookie': 'csrftoken=REPLACE; sessionid=REPLACE; mid=REPLACE; ig_did=REPLACE; datr=REPLACE',
+    'accept': '*/*',
+    'accept-language': 'en-US,en;q=0.9',
+    'content-type': 'application/x-www-form-urlencoded',
+    'origin': 'https://www.instagram.com',
+    'referer': 'https://www.instagram.com/',
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+    'x-csrftoken': 'REPLACE_WITH_CSRF_TOKEN',
+    'x-ig-app-id': '936619743392459',
+    'x-requested-with': 'XMLHttpRequest',
+    'cookie': 'csrftoken=REPLACE; sessionid=REPLACE; mid=REPLACE; ig_did=REPLACE; datr=REPLACE',
         }
 
         url = f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}"
@@ -65,39 +69,55 @@ def get_instagram_info(username):
         posts = user['edge_owner_to_timeline_media']['count']
         meta = followers >= 10 and posts >= 2
 
-        info = {
-            "full_name": user['full_name'] or 'N/A',
-            "username": user['username'],
-            "id": user['id'],
-            "creation_year": creation_year,
-            "bio": user['biography'] or 'N/A',
-            "url": user['external_url'] or 'N/A',
-            "followers": followers,
-            "following": user['edge_follow']['count'],
-            "posts": posts,
-            "is_private": user['is_private'],
-            "is_verified": user['is_verified'],
-            "is_business": user.get('is_business_account', False),
-            "meta_enabled": meta,
-            "reset_email": reset_email,
-            "profile_pic_url": user['profile_pic_url_hd']
-        }
+        info = f"""**🔍 Instagram User Info By @Wamphire:**
+👤 **Name**: {user['full_name'] or 'N/A'}
+🔗 **Username**: [@{user['username']}](https://instagram.com/{user['username']})
+🆔 **User ID**: `{user['id']}`
+📅 **Account Created**: `{creation_year}`
+📝 **Bio**: {user['biography'] or 'N/A'}
+🌐 **URL**: {user['external_url'] or 'N/A'}
+👥 **Followers**: {followers}
+👤 **Following**: {user['edge_follow']['count']}
+📮 **Posts**: {posts}
+🔒 **Private**: {'Yes' if user['is_private'] else 'No'}
+✅ **Verified**: {'Yes' if user['is_verified'] else 'No'}
+🏢 **Business**: {'Yes' if user.get('is_business_account') else 'No'}
+🔍 **Meta Enabled**: {'Yes' if meta else 'No'}
+📩 **Reset Email**: `{reset_email}`
+📸 **Profile Pic**: [Click Here]({user['profile_pic_url_hd']})
 
+**[𝐅𝐭~ || Pritam ||](tg://openmessage?user_id=1284660863)**
+"""
         return info, None
     except Exception as e:
+        print(f"[ERROR] {e}")
         return None, f"Error: {str(e)}"
 
-@app.route('/instainfo', methods=['GET'])
-def insta_info():
-    username = request.args.get("username")
-    if not username:
-        return jsonify({"error": "Missing 'username' parameter"}), 400
+# Command handler
+async def insta_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if len(context.args) != 1:
+        await update.message.reply_text("Usage: /insta <username>")
+        return
+
+    username = context.args[0]
+    await update.message.chat.send_action("typing")
 
     info, error = get_instagram_info(username)
+
     if error:
-        return jsonify({"error": error}), 500
+        await update.message.reply_text(f"❌ {error}")
+    else:
+        await update.message.reply_text(info, parse_mode="Markdown")
 
-    return jsonify(info)
+# Main function to start bot
+def main():
+    app = Application.builder().token(API_TOKEN).build()
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
+    # Register command
+    app.add_handler(CommandHandler("insta", insta_command))
+
+    # Start bot
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()

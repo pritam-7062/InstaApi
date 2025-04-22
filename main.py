@@ -21,7 +21,7 @@ requests_session = requests.Session()
 requests_session.proxies.update(PROXY)
 
 # Set the proxy for Instaloader (using requests session)
-x.context.session.proxies.update(PROXY)
+x.context._session.proxies.update(PROXY)
 
 # Calculate account creation year from user ID
 def date(hy):

@@ -3,11 +3,27 @@ import requests
 from fastapi import FastAPI, Query
 from pydantic import BaseModel
 from typing import Optional
+import os
+from dotenv import load_dotenv
 from keep_alive import keep_alive
 keep_alive()
 
+# Load environment variables from a .env file
+load_dotenv()
+
+# Fetch proxy from environment variables
+PROXY_URL = os.getenv("PROXY_URL", "")  # You can specify this in your .env file
+
+# FastAPI app initialization
 app = FastAPI()
 x = instaloader.Instaloader()
+
+# Set the proxy for Instaloader (if available)
+if PROXY_URL:
+    x.context.proxy = PROXY_URL
+    print(f"Using proxy: {PROXY_URL}")
+else:
+    print("No proxy set, using default connection.")
 
 # Calculate account creation year from user ID
 def date(hy):

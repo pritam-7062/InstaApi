@@ -1,121 +1,125 @@
-from fastapi import FastAPI, Query, HTTPException
-from pydantic import BaseModel
-from typing import Optional
-import instaloader
 import requests
-from keep_alive import keep_alive
+from telegram import Update
+from telegram.ext import Application, CommandHandler, ContextTypes
+import logging
 
-# Start keep-alive server (optional for uptime robot hosting)
+from keep_alive import keep_alive
 keep_alive()
 
-# Initialize FastAPI app
-app = FastAPI()
+# Your bot token
+API_TOKEN = "7300786908:AAGwzBDtx8JBhGd0X5X9Omp2h1JUs8BHgWg"  # Replace with actual bot token
 
-# Configure proxy
-PROXY = {
-    "http": "http://xvcgftgw-rotate:9vm1bt8kvocy@p.webshare.io:80",
-    "https": "http://xvcgftgw-rotate:9vm1bt8kvocy@p.webshare.io:80"
-}
 
-# Setup requests session with proxy
-requests_session = requests.Session()
-requests_session.proxies.update(PROXY)
 
-# Initialize Instaloader and apply proxy
-L = instaloader.Instaloader()
-L.context._session.proxies.update(PROXY)
+def date(hy: int):
+    try:
+        ranges = [
+            (1278889, 2010), (17750000, 2011), (279760000, 2012),
+            (900990000, 2013), (1629010000, 2014), (2369359761, 2015),
+            (4239516754, 2016), (6345108209, 2017), (10016232395, 2018),
+            (27238602159, 2019), (43464475395, 2020), (50289297647, 2021),
+            (57464707082, 2022), (63313426938, 2023)
+        ]
+        for upper, year in ranges:
+            if hy <= upper:
+                return year
+        return 2024
+    except:
+        return "Unknown"
 
-# Account creation year estimator from user ID
-def get_creation_year(uid: int) -> int:
-    ranges = [
-        (1278889, 2010), (17750000, 2011), (279760000, 2012),
-        (900990000, 2013), (1629010000, 2014), (2369359761, 2015),
-        (4239516754, 2016), (6345108209, 2017), (10016232395, 2018),
-        (27238602159, 2019), (43464475395, 2020), (50289297647, 2021),
-        (57464707082, 2022), (63313426938, 2023)
-    ]
-    for upper, year in ranges:
-        if uid <= upper:
-            return year
-    return 2024
-
-# Fetch Instagram reset email (may be hidden or unavailable)
-def get_reset_email(username: str) -> str:
+def get_reset_usr(username):
     try:
         url = "https://i.instagram.com/api/v1/accounts/send_recovery_flow_email/"
         headers = {
-            'authority': 'www.instagram.com',
-            'accept': '*/*',
-            'accept-language': 'eng',
-            'content-type': 'application/x-www-form-urlencoded',
-            'cookie': 'csrftoken=vEG96oJnlEsyUWNS53bHLkVTMFYQKCBV; ig_did=5D80D38A-797B-482D-A407-4B51217E09E7; ig_nrcb=1; mid=ZEqtPgALAAE-IVt6zG-ZazKzI4qN; datr=jrJKZGOaV4gHwa-Znj2QCVyB',
-            'origin': 'https://www.instagram.com',
-            'referer': 'https://www.instagram.com/accounts/password/reset/?next=%2Faccounts%2Flogout%2F',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36',
-            'x-csrftoken': 'vEG96oJnlEsyUWNS53bHLkVTMFYQKCBV',
-            'x-ig-app-id': '936619743392459',
-            'x-instagram-ajax': '1007389883',
+            "User-Agent": "Instagram 295.0.0.19.119",
+            "x-ig-app-id": "936619743392459",
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
         }
         data = {"query": username}
-        res = requests_session.post(url, headers=headers, data=data)
-        return res.json().get("email", "Hidden or Not Available") if res.status_code == 200 else "Hidden or Not Available"
+        response = requests.post(url, headers=headers, data=data)
+        return response.json().get("email", "Not Available") if response.status_code == 200 else "Hidden or Not Available"
     except:
         return "Error fetching email"
 
-# Define Pydantic model
-class InstaInfo(BaseModel):
-    name: Optional[str]
-    username: str
-    userid: Optional[int]
-    creation_year: Optional[int]
-    biography: Optional[str]
-    business_category: Optional[str]
-    external_url: Optional[str]
-    followers: Optional[int]
-    following: Optional[int]
-    posts: Optional[int]
-    is_private: Optional[bool]
-    is_verified: Optional[bool]
-    is_business: Optional[bool]
-    meta_enabled: Optional[bool]
-    reset_email: Optional[str]
-    profile_pic: Optional[str]
-
-@app.get("/insta", response_model=InstaInfo)
-def get_instagram_info(username: str = Query(..., description="Instagram username to lookup")):
+def get_instagram_info(username):
     try:
-        profile = instaloader.Profile.from_username(L.context, username)
+        headers = {
+            'authority': 'www.instagram.com',
+    'accept': '*/*',
+    'accept-language': 'en-US,en;q=0.9',
+    'content-type': 'application/x-www-form-urlencoded',
+    'origin': 'https://www.instagram.com',
+    'referer': 'https://www.instagram.com/',
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+    'x-csrftoken': 'REPLACE_WITH_CSRF_TOKEN',
+    'x-ig-app-id': '936619743392459',
+    'x-requested-with': 'XMLHttpRequest',
+    'cookie': 'csrftoken=REPLACE; sessionid=REPLACE; mid=REPLACE; ig_did=REPLACE; datr=REPLACE',
+        }
 
-        # Calculate account creation year
-        creation_year = get_creation_year(int(profile.userid))
+        url = f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}"
+        response = requests.get(url, headers=headers)
 
-        # Determine "meta enabled" condition
-        meta_enabled = profile.followers >= 10 and profile.mediacount >= 2
+        if response.status_code != 200:
+            return None, "Failed to fetch user info (possibly private or unavailable)."
 
-        return InstaInfo(
-            name=profile.full_name or None,
-            username=profile.username,
-            userid=profile.userid,
-            creation_year=creation_year,
-            biography=profile.biography or None,
-            business_category=profile.business_category_name or None,
-            external_url=profile.external_url or None,
-            followers=profile.followers,
-            following=profile.followees,
-            posts=profile.mediacount,
-            is_private=profile.is_private,
-            is_verified=profile.is_verified,
-            is_business=profile.is_business_account,
-            meta_enabled=meta_enabled,
-            reset_email=get_reset_email(username),
-            profile_pic=profile.profile_pic_url
-        )
+        user = response.json()["data"]["user"]
+        userid = int(user["id"])
+        creation_year = date(userid)
+        reset_email = get_reset_usr(username)
 
-    except instaloader.exceptions.ProfileNotExistsException:
-        raise HTTPException(status_code=404, detail="User not found")
-    except instaloader.exceptions.ConnectionException:
-        raise HTTPException(status_code=503, detail="Connection error to Instagram")
-    except instaloader.exceptions.BadResponseException:
-        raise HTTPException(status_code=502, detail="Instagram API returned a bad response")
+        followers = user['edge_followed_by']['count']
+        posts = user['edge_owner_to_timeline_media']['count']
+        meta = followers >= 10 and posts >= 2
+
+        info = f"""**🔍 Instagram User Info By @Wamphire:**
+👤 **Name**: {user['full_name'] or 'N/A'}
+🔗 **Username**: [@{user['username']}](https://instagram.com/{user['username']})
+🆔 **User ID**: `{user['id']}`
+📅 **Account Created**: `{creation_year}`
+📝 **Bio**: {user['biography'] or 'N/A'}
+🌐 **URL**: {user['external_url'] or 'N/A'}
+👥 **Followers**: {followers}
+👤 **Following**: {user['edge_follow']['count']}
+📮 **Posts**: {posts}
+🔒 **Private**: {'Yes' if user['is_private'] else 'No'}
+✅ **Verified**: {'Yes' if user['is_verified'] else 'No'}
+🏢 **Business**: {'Yes' if user.get('is_business_account') else 'No'}
+🔍 **Meta Enabled**: {'Yes' if meta else 'No'}
+📩 **Reset Email**: `{reset_email}`
+📸 **Profile Pic**: [Click Here]({user['profile_pic_url_hd']})
+
+**[𝐅𝐭~ || Pritam ||](tg://openmessage?user_id=1284660863)**
+"""
+        return info, None
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {e}")
+        return None, f"Error: {str(e)}"
+
+# Command handler
+async def insta_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if len(context.args) != 1:
+        await update.message.reply_text("Usage: /insta <username>")
+        return
+
+    username = context.args[0]
+    await update.message.chat.send_action("typing")
+
+    info, error = get_instagram_info(username)
+
+    if error:
+        await update.message.reply_text(f"❌ {error}")
+    else:
+        await update.message.reply_text(info, parse_mode="Markdown")
+
+# Main function to start bot
+def main():
+    app = Application.builder().token(API_TOKEN).build()
+
+    # Register command
+    app.add_handler(CommandHandler("insta", insta_command))
+
+    # Start bot
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()

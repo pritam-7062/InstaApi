@@ -60,7 +60,7 @@ def get_instagram_info(username):
         response = requests.get(url, headers=headers)
 
         if response.status_code != 200:
-            return None, "Failed to fetch user info (possibly private or unavailable)."
+            return None, response.txt
 
         user = response.json()["data"]["user"]
         userid = int(user["id"])

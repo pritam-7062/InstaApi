@@ -3,4 +3,3 @@ requests
 python-telegram-bot
 Flask==2.2.2
 requests==2.28.1
-codecs==1.0.0  # If using this library, otherwise remove it

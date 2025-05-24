@@ -1,10 +1,6 @@
 import requests, uuid, random, string
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
-from keep_alive import keep_alive
-
-keep_alive()
-API_TOKEN = "8015804901:AAH9pBwCCISOJZJK2phGkUrUyPM4pI92wag"
 
 # Random Device Info for User-Agent
 def generate_headers():
@@ -19,7 +15,7 @@ def generate_headers():
         "Referer": "https://www.instagram.com/"
     }
 
-# Webshare Proxy List
+# Proxy List
 proxies_list = [
     {"http": "http://gglemtja-rotate:a0m16t677tmf@p.webshare.io:80/", "https": "http://wrfsjyrn-rotate:aurq4k93285j@p.webshare.io:80/"},
     {"https": "http://bdpusfsa-rotate:mjs2uwp6m3u3@p.webshare.io:80/"},
@@ -45,103 +41,101 @@ def estimate_year(user_id: int):
             return year
     return 2024
 
-# Instagram User Info Fetcher
+# Instagram Info Fetcher
 def get_instagram_info(username):
     url = f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}"
-    for _ in range(3):  # Try 3 proxy attempts
+    for _ in range(3):
         proxy = random.choice(proxies_list)
         try:
-            response = requests.get(url, headers=generate_headers(), timeout=20)
+            response = requests.get(url, headers=generate_headers(), proxies=proxy, timeout=30)
             if response.status_code == 200:
-                user = response.json()["data"]["user"]
-                userid = int(user["id"])
-                creation_year = estimate_year(userid)
-
-                followers = user['edge_followed_by']['count']
-                posts = user['edge_owner_to_timeline_media']['count']
-                meta = followers >= 10 and posts >= 2
-
-                info = f"""**🔍 Instagram User Info:**
-👤 **Name**: {user['full_name'] or 'N/A'}
-🔗 **Username**: [@{user['username']}](https://instagram.com/{user['username']})
-🆔 **User ID**: `{user['id']}`
-📅 **Created**: `{creation_year}`
-📝 **Bio**: {user['biography'] or 'N/A'}
-🌐 **URL**: {user['external_url'] or 'N/A'}
-👥 **Followers**: {followers}
-👤 **Following**: {user['edge_follow']['count']}
-📮 **Posts**: {posts}
-🔒 **Private**: {'Yes' if user['is_private'] else 'No'}
-✅ **Verified**: {'Yes' if user['is_verified'] else 'No'}
-🏢 **Business**: {'Yes' if user.get('is_business_account') else 'No'}
-🔍 **Meta Enabled**: {'Yes' if meta else 'No'}
-📸 **Profile Pic**: [Click Here]({user['profile_pic_url_hd']})
-"""
-                return info, None
+                return response.json(), None
         except Exception:
             continue
-    return None, response.text
+    return None, "❌ Failed to fetch user info"
 
-# Fetch Instagram Reset Email (Masked)
-def fetch_reset_email(username_or_email):
+# Reset Email Fetcher
+def fetch_reset_email(target):
+    data = {
+        "_csrftoken": "".join(random.choices(string.ascii_letters + string.digits, k=32)),
+        "guid": str(uuid.uuid4()),
+        "device_id": str(uuid.uuid4()),
+    }
+    if "@" in target:
+        data["user_email"] = target
+    else:
+        data["username"] = target
+
     for proxy in proxies_list:
+        headers = generate_headers()
         try:
-            data = {
-                "_csrftoken": "".join(random.choices(string.ascii_letters + string.digits, k=32)),
-                "guid": str(uuid.uuid4()),
-                "device_id": str(uuid.uuid4()),
-            }
-            if "@" in username_or_email:
-                data["user_email"] = username_or_email
-            else:
-                data["username"] = username_or_email
-
             response = requests.post(
                 "https://i.instagram.com/api/v1/accounts/send_password_reset/",
-                headers=generate_headers(),
+                headers=headers,
                 data=data,
                 proxies=proxy,
-                timeout=10
+                timeout=30
             )
-            if response.status_code == 200:
-                json_resp = response.json()
-                if "obfuscated_email" in json_resp:
-                    return True, json_resp["obfuscated_email"]
-                else:
-                    # Sometimes it may say no such user/email
-                    return False, json_resp.get("message", "No obfuscated email found.")
-        except Exception:
+            if response.status_code == 200 and "obfuscated_email" in response.text:
+                return True, response.json().get("obfuscated_email", None)
+        except requests.RequestException:
             continue
-    return False, response.text
+    return False, None
 
-# Telegram Command Handlers
+# Insta Command Handler
 async def insta_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if len(context.args) != 1:
-        await update.message.reply_text("Usage: /insta <username>")
+    if not context.args:
+        await update.message.reply_text("❌ Usage: `/insta <username>`", parse_mode="Markdown")
         return
-    username = context.args[0]
-    await update.message.chat.send_action("typing")
+
+    username = context.args[0].lstrip("@")
+    await update.message.reply_text("⏳ Fetching Instagram info...")
+
     info, error = get_instagram_info(username)
-    await update.message.reply_text(info if info else error, parse_mode="Markdown")
+    reset_success, reset_email = fetch_reset_email(username)
 
-async def resetmail_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if len(context.args) != 1:
-        await update.message.reply_text("Usage: /resetmail <username_or_email>")
+    if not info:
+        await update.message.reply_text(error)
         return
-    username_or_email = context.args[0]
-    await update.message.chat.send_action("typing")
-    success, result = fetch_reset_email(username_or_email)
-    if success:
-        await update.message.reply_text(f"🔐 Masked reset email: `{result}`", parse_mode="Markdown")
-    else:
-        await update.message.reply_text(f"❌ Failed: {result}")
 
-# Main Function
-def main():
-    app = Application.builder().token(API_TOKEN).build()
+    user_data = info.get("data", {}).get("user", {})
+    if not user_data:
+        await update.message.reply_text("❌ Invalid username or user not found.")
+        return
+
+    full_name = user_data.get("full_name", "N/A")
+    is_private = user_data.get("is_private", False)
+    followers = user_data.get("edge_followed_by", {}).get("count", 0)
+    following = user_data.get("edge_follow", {}).get("count", 0)
+    posts = user_data.get("edge_owner_to_timeline_media", {}).get("count", 0)
+    verified = user_data.get("is_verified", False)
+    bio = user_data.get("biography", "N/A") or "N/A"
+    user_id = int(user_data.get("id", 0))
+    created_year = estimate_year(user_id)
+
+    info_text = (
+        f"🔍 *Username:* `{username}`\n"
+        f"👤 *Full Name:* `{full_name}`\n"
+        f"📅 *Estimated Year Created:* `{created_year}`\n"
+        f"✅ *Verified:* `{verified}`\n"
+        f"🔒 *Private:* `{is_private}`\n"
+        f"📸 *Posts:* `{posts}`\n"
+        f"👥 *Followers:* `{followers}`\n"
+        f"➡️ *Following:* `{following}`\n"
+        f"📝 *Bio:* `{bio}`\n"
+    )
+
+    if reset_success:
+        info_text += f"🔐 *Reset Email:* `{reset_email}`"
+
+    await update.message.reply_text(info_text, parse_mode="Markdown")
+
+# Main Setup
+def run_bot():
+    TOKEN = "7591583598:AAED8BdysvzMby5cPr3DU1UOMRLGb0jI5do"
+    app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("insta", insta_command))
-    app.add_handler(CommandHandler("resetm", resetmail_command))
     app.run_polling()
 
 if __name__ == "__main__":
-    main()
+    run_bot()

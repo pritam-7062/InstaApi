@@ -52,7 +52,11 @@ def get_instagram_info(username):
     url = f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}"
     for proxy in proxies_list:
         try:
-            response = requests.get(url, headers=generate_headers(), proxies=proxy, timeout=20)
+            data = {
+                "_csrftoken": "".join(random.choices(string.ascii_letters + string.digits, k=32)),
+                "guid": str(uuid.uuid4()),
+                "device_id": str(uuid.uuid4()),
+            response = requests.get(url, headers=generate_headers(), data=data, proxies=proxy, timeout=20)
             if response.status_code == 200:
                 user = response.json()["data"]["user"]
                 userid = int(user["id"])

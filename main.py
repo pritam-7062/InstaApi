@@ -1,12 +1,22 @@
-from flask import Flask, request, jsonify
 import requests
-import codecs
+import logging
+import random
+import string
+import uuid
+from telegram import Update
+from telegram.ext import Application, CommandHandler, ContextTypes
 from keep_alive import keep_alive
 keep_alive()
 
-app = Flask(__name__)
+# Hardcoded bot and Instagram credentials
+API_TOKEN = "8015804901:AAH9pBwCCISOJZJK2phGkUrUyPM4pI92wag"
+IG_SESSIONID = "your_instagram_sessionid"
+IG_DATR = "your_instagram_datr_cookie"
 
-# Helper function to determine account creation year based on user ID
+# Enable logging
+logging.basicConfig(level=logging.INFO)
+
+
 def date(hy: int):
     try:
         ranges = [
@@ -23,7 +33,7 @@ def date(hy: int):
     except:
         return "Unknown"
 
-# Helper function to fetch reset email for an Instagram account
+
 def get_reset_usr(username):
     try:
         url = "https://i.instagram.com/api/v1/accounts/send_recovery_flow_email/"
@@ -38,9 +48,14 @@ def get_reset_usr(username):
     except:
         return "Error fetching email"
 
-# Function to fetch Instagram user info
+
 def get_instagram_info(username):
     try:
+        # Generate tokens and device info
+        csrftoken = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
+        guid = str(uuid.uuid4())
+        device_id = str(uuid.uuid4())
+
         headers = {
             'authority': 'www.instagram.com',
             'accept': '*/*',
@@ -48,11 +63,11 @@ def get_instagram_info(username):
             'content-type': 'application/x-www-form-urlencoded',
             'origin': 'https://www.instagram.com',
             'referer': 'https://www.instagram.com/',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-            'x-csrftoken': 'REPLACE_WITH_CSRF_TOKEN',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+            'x-csrftoken': csrftoken,
             'x-ig-app-id': '936619743392459',
             'x-requested-with': 'XMLHttpRequest',
-            'cookie': 'csrftoken=REPLACE; sessionid=REPLACE; mid=REPLACE; ig_did=REPLACE; datr=REPLACE',
+            'cookie': f'csrftoken={csrftoken}; sessionid={IG_SESSIONID}; mid={guid}; ig_did={device_id}; datr={IG_DATR}'
         }
 
         url = f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}"
@@ -66,49 +81,58 @@ def get_instagram_info(username):
         creation_year = date(userid)
         reset_email = get_reset_usr(username)
 
-        # Decode bio to human-readable format
-        bio = user['biography']
-        if bio:
-            bio = codecs.decode(bio, 'unicode_escape')  # Decoding the bio
-
         followers = user['edge_followed_by']['count']
         posts = user['edge_owner_to_timeline_media']['count']
         meta = followers >= 10 and posts >= 2
 
-        info = {
-            "Name": user['full_name'] or 'N/A',
-            "Username": f"@{user['username']}",
-            "User ID": user['id'],
-            "Account Created": creation_year,
-            "Bio": bio or 'N/A',
-            "URL": user['external_url'] or 'N/A',
-            "Followers": followers,
-            "Following": user['edge_follow']['count'],
-            "Posts": posts,
-            "Private": 'Yes' if user['is_private'] else 'No',
-            "Verified": 'Yes' if user['is_verified'] else 'No',
-            "Business": 'Yes' if user.get('is_business_account') else 'No',
-            "Meta Enabled": 'Yes' if meta else 'No',
-            "Reset Email": reset_email,
-            "Profile Pic": user['profile_pic_url_hd']
-        }
+        info = f"""**🔍 Instagram User Info By @Wamphire:**
+👤 **Name**: {user['full_name'] or 'N/A'}
+🔗 **Username**: [@{user['username']}](https://instagram.com/{user['username']})
+🆔 **User ID**: `{user['id']}`
+📅 **Account Created**: `{creation_year}`
+📝 **Bio**: {user['biography'] or 'N/A'}
+🌐 **URL**: {user['external_url'] or 'N/A'}
+👥 **Followers**: {followers}
+👤 **Following**: {user['edge_follow']['count']}
+📮 **Posts**: {posts}
+🔒 **Private**: {'Yes' if user['is_private'] else 'No'}
+✅ **Verified**: {'Yes' if user['is_verified'] else 'No'}
+🏢 **Business**: {'Yes' if user.get('is_business_account') else 'No'}
+🔍 **Meta Enabled**: {'Yes' if meta else 'No'}
+📩 **Reset Email**: `{reset_email}`
+📸 **Profile Pic**: [Click Here]({user['profile_pic_url_hd']})
 
+**[𝐅𝐭~ || Pritam ||](tg://openmessage?user_id=1284660863)**
+"""
         return info, None
     except Exception as e:
         return None, f"Error: {str(e)}"
 
-# Flask route to get Instagram user info
-@app.route('/instagram_info', methods=['GET'])
-def instagram_info():
-    username = request.args.get('username')
-    if not username:
-        return jsonify({"error": "Username is required"}), 400
+
+# Command handler
+async def insta_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if len(context.args) != 1:
+        await update.message.reply_text("Usage: /insta <username>")
+        return
+
+    username = context.args[0]
+    await update.message.chat.send_action("typing")
 
     info, error = get_instagram_info(username)
+
     if error:
-        return jsonify({"error": error}), 500
+        await update.message.reply_text(f"❌ {error}")
+    else:
+        await update.message.reply_text(info, parse_mode="Markdown")
 
-    return jsonify(info), 200
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# Bot entrypoint
+def main():
+    app = Application.builder().token(API_TOKEN).build()
+    app.add_handler(CommandHandler("insta", insta_command))
+    print("bot is running")
+    app.run_polling()
+
+
+if __name__ == "__main__":
+    main()

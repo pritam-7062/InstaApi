@@ -2,9 +2,10 @@ import requests, uuid, random, string
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 from keep_alive import keep_alive
-
 keep_alive()
+
 API_TOKEN = "8015804901:AAH9pBwCCISOJZJK2phGkUrUyPM4pI92wag"
+OWNER_ID = 1284660863  # Replace with your actual Telegram user ID
 
 # Random Device Info for User-Agent
 def generate_headers():
@@ -27,7 +28,7 @@ proxies_list = [
     {"https": "http://xvcgftgw-rotate:9vm1bt8kvocy@p.webshare.io:80"},
 ]
 
-# Creation Year Estimator
+# Estimate IG Account Creation Year from UID
 def estimate_year(user_id: int):
     ranges = [
         (1278889, 2010), (17750000, 2011), (279760000, 2012), (900990000, 2013),
@@ -41,10 +42,10 @@ def estimate_year(user_id: int):
             return year
     return 2024
 
-# Instagram User Info Fetcher
+# Instagram Info Fetcher
 def get_instagram_info(username):
     url = f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}"
-    for _ in range(3):  # Try 3 proxy attempts
+    for _ in range(3):
         proxy = random.choice(proxies_list)
         try:
             response = requests.get(url, headers=generate_headers(), timeout=30)
@@ -73,12 +74,12 @@ def get_instagram_info(username):
 🔍 **Meta Enabled**: {'Yes' if meta else 'No'}
 📸 **Profile Pic**: [Click Here]({user['profile_pic_url_hd']})
 """
-                return info, None
+                return info, user['username'], None
         except Exception:
             continue
-    return None, "❌ Failed to fetch user info (check username or proxy access)"
+    return None, None, "❌ Failed to fetch user info (check username or proxy access)"
 
-# Fetch Instagram Reset Email (Masked)
+# Reset Email Fetcher
 def fetch_reset_email(username_or_email):
     for proxy in proxies_list:
         try:
@@ -104,39 +105,42 @@ def fetch_reset_email(username_or_email):
                 if "obfuscated_email" in json_resp:
                     return True, json_resp["obfuscated_email"]
                 else:
-                    # Sometimes it may say no such user/email
                     return False, json_resp.get("message", "No obfuscated email found.")
         except Exception:
             continue
     return False, "Failed to fetch reset email info using proxies."
 
-# Telegram Command Handlers
+# /insta Command Handler
 async def insta_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    #if update.effective_chat.type not in ["group", "supergroup"]:
+        #await update.message.reply_text("❌ This command can only be used in group chats.")
+        #return
+
+    if update.effective_user.id != OWNER_ID:
+        await update.message.reply_text("❌ You are not authorized to use this command.")
+        return
+
     if len(context.args) != 1:
         await update.message.reply_text("Usage: /insta <username>")
         return
+
     username = context.args[0]
-    await update.message.chat.send_action("typing")
-    info, error = get_instagram_info(username)
-    await update.message.reply_text(info if info else error, parse_mode="Markdown")
+    fetching_msg = await update.message.reply_text("⏳ Fetching Instagram info...")
 
-async def resetmail_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if len(context.args) != 1:
-        await update.message.reply_text("Usage: /resetmail <username_or_email>")
-        return
-    username_or_email = context.args[0]
-    await update.message.chat.send_action("typing")
-    success, result = fetch_reset_email(username_or_email)
-    if success:
-        await update.message.reply_text(f"🔐 Masked reset email: `{result}`", parse_mode="Markdown")
+    info, clean_username, error = get_instagram_info(username)
+    if clean_username:
+        reset_success, reset_email = fetch_reset_email(clean_username)
+        reset_text = f"\n🔐 **Reset Email (masked):** `{reset_email}`" if reset_success else f"\n🔐 **Reset Email:** {reset_email}"
     else:
-        await update.message.reply_text(f"❌ Failed: {result}")
+        reset_text = ""
 
-# Main Function
+    await fetching_msg.delete()
+    await update.message.reply_text(info + reset_text if info else error, parse_mode="Markdown")
+
+# Main Entrypoint
 def main():
     app = Application.builder().token(API_TOKEN).build()
     app.add_handler(CommandHandler("insta", insta_command))
-    app.add_handler(CommandHandler("resetm", resetmail_command))
     app.run_polling()
 
 if __name__ == "__main__":

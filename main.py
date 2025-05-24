@@ -28,7 +28,7 @@ proxies_list = [
     {"http": "http://xvcgftgw-rotate:9vm1bt8kvocy@p.webshare.io:80"},
     {"https": "http://xvcgftgw-rotate:9vm1bt8kvocy@p.webshare.io:80"},
     {"http": "http://fepgpvaz-rotate:jyv905f8hjv3@p.webshare.io:80"},
-    {"https": "http://fepgpvaz-rotate:jyv905f8hjv3@p.webshare.io:80"}
+    {"https": "http://fepgpvaz-rotate:jyv905f8hjv3@p.webshare.io:80"},
     {"http": "http://tyxgkhty-rotate:1bxkvycbytnq@p.webshare.io:80"},
     {"https": "http://tyxgkhty-rotate:1bxkvycbytnq@p.webshare.io:80"}
 ]

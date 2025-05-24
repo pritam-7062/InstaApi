@@ -1,7 +1,7 @@
 import requests, uuid, random, string
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
-from keep_all import keep_alive
+from keep_alive import keep_alive
 keep_alive()
 API_TOKEN = "8015804901:AAH9pBwCCISOJZJK2phGkUrUyPM4pI92wag"
 

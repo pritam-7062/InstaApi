@@ -40,20 +40,7 @@ def estimate_year(user_id: int):
             return year
     return 2024
 
-# Reset Email Fetcher
-def get_reset_usr(username):
-    try:
-        url = "https://i.instagram.com/api/v1/accounts/send_recovery_flow_email/"
-        headers = {
-            "User-Agent": "Instagram 295.0.0.19.119",
-            "x-ig-app-id": "936619743392459",
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
-        }
-        data = {"query": username}
-        response = requests.post(url, headers=headers, data=data, timeout=10)
-        return response.json().get("email", "Not Available") if response.status_code == 200 else "Hidden or Not Available"
-    except:
-        return "Error fetching email"
+
 
 # Instagram User Info Fetcher
 def get_instagram_info(username):
@@ -66,7 +53,7 @@ def get_instagram_info(username):
                 user = response.json()["data"]["user"]
                 userid = int(user["id"])
                 creation_year = estimate_year(userid)
-                reset_email = get_reset_usr(username)
+                #reset_email = get_reset_usr(username)
 
                 followers = user['edge_followed_by']['count']
                 posts = user['edge_owner_to_timeline_media']['count']
@@ -86,7 +73,6 @@ def get_instagram_info(username):
 ✅ **Verified**: {'Yes' if user['is_verified'] else 'No'}
 🏢 **Business**: {'Yes' if user.get('is_business_account') else 'No'}
 🔍 **Meta Enabled**: {'Yes' if meta else 'No'}
-📩 **Reset Email**: `{reset_email}`
 📸 **Profile Pic**: [Click Here]({user['profile_pic_url_hd']})
 """
                 return info, None

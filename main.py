@@ -112,9 +112,9 @@ def fetch_reset_email(username_or_email):
 
 # /insta Command Handler
 async def insta_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    #if update.effective_chat.type not in ["group", "supergroup"]:
-        #await update.message.reply_text("❌ This command can only be used in group chats.")
-        #return
+    if update.effective_chat.type not in ["group", "supergroup"]:
+        await update.message.reply_text("❌ This command can only be used in group chats.")
+        return
 
     if update.effective_user.id != OWNER_ID:
         await update.message.reply_text("❌ You are not authorized to use this command.")
@@ -128,14 +128,31 @@ async def insta_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     fetching_msg = await update.message.reply_text("⏳ Fetching Instagram info...")
 
     info, clean_username, error = get_instagram_info(username)
+
+    reset_text = ""
+    reset_status = ""
     if clean_username:
         reset_success, reset_email = fetch_reset_email(clean_username)
-        reset_text = f"\n🔐 **Reset Email (masked):** `{reset_email}`" if reset_success else f"\n🔐 **Reset Email:** {reset_email}"
-    else:
-        reset_text = ""
-
+        if reset_success:
+            reset_text = f"\n\n🔐 **Reset Email (masked)**: `{reset_email}`"
+            reset_status = "reset"
+        else:
+            reset_text = f"\n\n🔐 **Reset Email**: {reset_email}"
+            reset_status = "reset_fail"
+    
     await fetching_msg.delete()
-    await update.message.reply_text(info + reset_text if info else error, parse_mode="Markdown")
+
+    if info and reset_status:
+        title = "✅ Fetched Instagram Info & Reset Email"
+        await update.message.reply_text(f"*{title}*\n\n{info}{reset_text}", parse_mode="Markdown")
+    elif info:
+        title = "✅ Fetched Instagram Info"
+        await update.message.reply_text(f"*{title}*\n\n{info}", parse_mode="Markdown")
+    elif reset_status:
+        title = "✅ Fetched Reset Email"
+        await update.message.reply_text(f"*{title}*{reset_text}", parse_mode="Markdown")
+    else:
+        await update.message.reply_text(error or "❌ Failed to fetch info.", parse_mode="Markdown")
 
 # Main Entrypoint
 def main():

@@ -2,25 +2,26 @@ import requests, uuid, random, string
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 from keep_alive import keep_alive
+
 keep_alive()
 
 API_TOKEN = "8015804901:AAH9pBwCCISOJZJK2phGkUrUyPM4pI92wag"
-OWNER_ID = 1284660863  # Replace with your actual Telegram user ID
+OWNER_ID = 1284660863  # Your Telegram ID
 
-# Random Device Info for User-Agent
+# User-Agent generator
 def generate_headers():
-    random_device_info = random.choice(["samsung", "xiaomi", "oneplus", "google", "huawei", "oppo", "vivo"])
+    random_device = random.choice(["samsung", "xiaomi", "oneplus", "google", "huawei", "oppo", "vivo"])
     return {
         "user-agent": (
             f"Instagram 150.0.0.0.000 Android (29/10; 300dpi; 720x1440; "
-            f"{random_device_info}/{random_device_info}; {random_device_info}; {random_device_info}; en_GB;)"
+            f"{random_device}/{random_device}; {random_device}; {random_device}; en_GB;)"
         ),
         "x-ig-app-id": "936619743392459",
         "x-requested-with": "XMLHttpRequest",
         "Referer": "https://www.instagram.com/"
     }
 
-# Webshare Proxy List
+# Webshare proxy list
 proxies_list = [
     {"http": "http://bhcdwbbk-rotate:93ht6poh1443@p.webshare.io:80/", "https": "http://hxifftfr-rotate:h3ayfibgazbo@p.webshare.io:80/"},
     {"http": "http://mdcpzjeo-rotate:r2eozqbb21b8@p.webshare.io:80/", "https": "http://bdpusfsa-rotate:mjs2uwp6m3u3@p.webshare.io:80/"},
@@ -28,7 +29,7 @@ proxies_list = [
     {"https": "http://xvcgftgw-rotate:9vm1bt8kvocy@p.webshare.io:80"},
 ]
 
-# Estimate IG Account Creation Year from UID
+# Estimate account creation year
 def estimate_year(user_id: int):
     ranges = [
         (1278889, 2010), (17750000, 2011), (279760000, 2012), (900990000, 2013),
@@ -42,13 +43,13 @@ def estimate_year(user_id: int):
             return year
     return 2024
 
-# Instagram Info Fetcher
+# Get Instagram user info
 def get_instagram_info(username):
     url = f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}"
     for _ in range(3):
         proxy = random.choice(proxies_list)
         try:
-            response = requests.get(url, headers=generate_headers(), proxies=proxy, timeout=30)
+            response = requests.get(url, headers=generate_headers(), proxies=proxy, timeout=20)
             if response.status_code == 200:
                 user = response.json()["data"]["user"]
                 userid = int(user["id"])
@@ -58,8 +59,7 @@ def get_instagram_info(username):
                 posts = user['edge_owner_to_timeline_media']['count']
                 meta = followers >= 10 and posts >= 2
 
-                info = f"""**🔍 Instagram User Info:**
-👤 **Name**: {user['full_name'] or 'N/A'}
+                info = f"""👤 **Name**: {user['full_name'] or 'N/A'}
 🔗 **Username**: [@{user['username']}](https://instagram.com/{user['username']})
 🆔 **User ID**: `{user['id']}`
 📅 **Created**: `{creation_year}`
@@ -79,7 +79,7 @@ def get_instagram_info(username):
             continue
     return None, None, "❌ Failed to fetch user info (check username or proxy access)"
 
-# Reset Email Fetcher
+# Fetch masked reset email
 def fetch_reset_email(username_or_email):
     for proxy in proxies_list:
         try:
@@ -98,7 +98,7 @@ def fetch_reset_email(username_or_email):
                 headers=generate_headers(),
                 data=data,
                 proxies=proxy,
-                timeout=10
+                timeout=20
             )
             if response.status_code == 200:
                 json_resp = response.json()
@@ -110,12 +110,8 @@ def fetch_reset_email(username_or_email):
             continue
     return False, "Failed to fetch reset email info using proxies."
 
-# /insta Command Handler
+# /insta command handler
 async def insta_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_chat.type not in ["group", "supergroup"]:
-        await update.message.reply_text("❌ This command can only be used in group chats.")
-        return
-
     if update.effective_user.id != OWNER_ID:
         await update.message.reply_text("❌ You are not authorized to use this command.")
         return
@@ -128,33 +124,31 @@ async def insta_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     fetching_msg = await update.message.reply_text("⏳ Fetching Instagram info...")
 
     info, clean_username, error = get_instagram_info(username)
+    reset_success, reset_email = fetch_reset_email(clean_username or username)
 
-    reset_text = ""
-    reset_status = ""
-    if clean_username:
-        reset_success, reset_email = fetch_reset_email(clean_username)
-        if reset_success:
-            reset_text = f"\n\n🔐 **Reset Email (masked)**: `{reset_email}`"
-            reset_status = "reset"
-        else:
-            reset_text = f"\n\n🔐 **Reset Email**: {reset_email}"
-            reset_status = "reset_fail"
-    
     await fetching_msg.delete()
 
-    if info and reset_status:
-        title = "✅ Fetched Instagram Info & Reset Email"
-        await update.message.reply_text(f"*{title}*\n\n{info}{reset_text}", parse_mode="Markdown")
-    elif info:
-        title = "✅ Fetched Instagram Info"
-        await update.message.reply_text(f"*{title}*\n\n{info}", parse_mode="Markdown")
-    elif reset_status:
-        title = "✅ Fetched Reset Email"
-        await update.message.reply_text(f"*{title}*{reset_text}", parse_mode="Markdown")
+    status_lines = []
+    if info:
+        status_lines.append("✅ Successfully fetched user info")
     else:
-        await update.message.reply_text(error or "❌ Failed to fetch info.", parse_mode="Markdown")
+        status_lines.append("❌ Failed to fetch user info")
 
-# Main Entrypoint
+    if reset_success:
+        status_lines.append("✅ Successfully fetched reset email")
+    else:
+        status_lines.append("❌ Failed to fetch reset email")
+
+    final_output = "**Fetch Status:**\n" + "\n".join(status_lines)
+
+    if info:
+        final_output += f"\n\n**User Info:**\n{info}"
+    if reset_success:
+        final_output += f"\n**Reset Email (masked):**\n🔐 `{reset_email}`"
+
+    await update.message.reply_text(final_output, parse_mode="Markdown", disable_web_page_preview=True)
+
+# Start bot
 def main():
     app = Application.builder().token(API_TOKEN).build()
     app.add_handler(CommandHandler("insta", insta_command))

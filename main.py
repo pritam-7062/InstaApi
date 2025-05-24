@@ -2,12 +2,15 @@ import instaloader
 import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
-from keep_alive import keep_alive
-keep_alive()
 
 logging.basicConfig(level=logging.INFO)
 
 x = instaloader.Instaloader()
+
+# Set proxy here (only https proxy as you provided)
+x.context._session.proxies = {
+    "https": "http://xvcgftgw-rotate:9vm1bt8kvocy@p.webshare.io:80"
+}
 
 OWNER_ID = 1284660863  # Replace with your Telegram ID
 
@@ -83,7 +86,7 @@ async def insta_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 if __name__ == '__main__':
-    bot_token = "8015804901:AAH9pBwCCISOJZJK2phGkUrUyPM4pI92wag"  # Replace with your bot token
+    bot_token = "7591583598:AAED8BdysvzMby5cPr3DU1UOMRLGb0jI5do"  # Replace with your bot token
     application = Application.builder().token(bot_token).build()
 
     application.add_handler(CommandHandler("insta", insta_command))

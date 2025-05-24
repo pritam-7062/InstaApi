@@ -1,37 +1,45 @@
-import requests
-import logging
-import random
-import string
-import uuid
+import requests, uuid, random, string
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 from keep_alive import keep_alive
 keep_alive()
 
-# Hardcoded bot and Instagram credentials
-API_TOKEN = "8015804901:AAH9pBwCCISOJZJK2phGkUrUyPM4pI92wag"
-IG_SESSIONID = "your_instagram_sessionid"
-IG_DATR = "your_instagram_datr_cookie"
+API_TOKEN = "7591583598:AAED8BdysvzMby5cPr3DU1UOMRLGb0jI5do"  # Replace with your actual token
 
-# Enable logging
-logging.basicConfig(level=logging.INFO)
+
+def generate_instagram_headers():
+    csrf_token = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
+    session_id = str(uuid.uuid4())
+    mid = str(uuid.uuid4())
+    ig_did = str(uuid.uuid4())
+    datr = ''.join(random.choices(string.ascii_letters + string.digits, k=22))
+
+    return {
+        'authority': 'www.instagram.com',
+        'accept': '*/*',
+        'accept-language': 'en-US,en;q=0.9',
+        'content-type': 'application/x-www-form-urlencoded',
+        'origin': 'https://www.instagram.com',
+        'referer': 'https://www.instagram.com/',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'x-ig-app-id': '936619743392459',
+        'x-requested-with': 'XMLHttpRequest',
+        'cookie': f'csrftoken={csrf_token}; sessionid={session_id}; mid={mid}; ig_did={ig_did}; datr={datr};',
+    }
 
 
 def date(hy: int):
-    try:
-        ranges = [
-            (1278889, 2010), (17750000, 2011), (279760000, 2012),
-            (900990000, 2013), (1629010000, 2014), (2369359761, 2015),
-            (4239516754, 2016), (6345108209, 2017), (10016232395, 2018),
-            (27238602159, 2019), (43464475395, 2020), (50289297647, 2021),
-            (57464707082, 2022), (63313426938, 2023)
-        ]
-        for upper, year in ranges:
-            if hy <= upper:
-                return year
-        return 2024
-    except:
-        return "Unknown"
+    ranges = [
+        (1278889, 2010), (17750000, 2011), (279760000, 2012),
+        (900990000, 2013), (1629010000, 2014), (2369359761, 2015),
+        (4239516754, 2016), (6345108209, 2017), (10016232395, 2018),
+        (27238602159, 2019), (43464475395, 2020), (50289297647, 2021),
+        (57464707082, 2022), (63313426938, 2023)
+    ]
+    for upper, year in ranges:
+        if hy <= upper:
+            return year
+    return 2024
 
 
 def get_reset_usr(username):
@@ -43,7 +51,7 @@ def get_reset_usr(username):
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
         }
         data = {"query": username}
-        response = requests.post(url, headers=headers, data=data)
+        response = requests.post(url, headers=headers, data=data, timeout=10)
         return response.json().get("email", "Not Available") if response.status_code == 200 else "Hidden or Not Available"
     except:
         return "Error fetching email"
@@ -51,27 +59,9 @@ def get_reset_usr(username):
 
 def get_instagram_info(username):
     try:
-        # Generate tokens and device info
-        csrftoken = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
-        guid = str(uuid.uuid4())
-        device_id = str(uuid.uuid4())
-
-        headers = {
-            'authority': 'www.instagram.com',
-            'accept': '*/*',
-            'accept-language': 'en-US,en;q=0.9',
-            'content-type': 'application/x-www-form-urlencoded',
-            'origin': 'https://www.instagram.com',
-            'referer': 'https://www.instagram.com/',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-            'x-csrftoken': csrftoken,
-            'x-ig-app-id': '936619743392459',
-            'x-requested-with': 'XMLHttpRequest',
-            'cookie': f'csrftoken={csrftoken}; sessionid={IG_SESSIONID}; mid={guid}; ig_did={device_id}; datr={IG_DATR}'
-        }
-
+        headers = generate_instagram_headers()
         url = f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}"
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=10)
 
         if response.status_code != 200:
             return None, "Failed to fetch user info (possibly private or unavailable)."
@@ -101,15 +91,12 @@ def get_instagram_info(username):
 🔍 **Meta Enabled**: {'Yes' if meta else 'No'}
 📩 **Reset Email**: `{reset_email}`
 📸 **Profile Pic**: [Click Here]({user['profile_pic_url_hd']})
-
-**[𝐅𝐭~ || Pritam ||](tg://openmessage?user_id=1284660863)**
 """
         return info, None
     except Exception as e:
         return None, f"Error: {str(e)}"
 
 
-# Command handler
 async def insta_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) != 1:
         await update.message.reply_text("Usage: /insta <username>")
@@ -126,11 +113,10 @@ async def insta_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(info, parse_mode="Markdown")
 
 
-# Bot entrypoint
 def main():
     app = Application.builder().token(API_TOKEN).build()
     app.add_handler(CommandHandler("insta", insta_command))
-    print("bot is running")
+    print("Bot is running...")
     app.run_polling()
 
 

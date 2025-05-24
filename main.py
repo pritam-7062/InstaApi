@@ -52,7 +52,7 @@ def get_instagram_info(username):
                 return response.json(), None
         except Exception:
             continue
-    return None, "❌ Failed to fetch user info"
+    return None, response.text
 
 # Reset Email Fetcher
 def fetch_reset_email(target):
@@ -80,7 +80,7 @@ def fetch_reset_email(target):
                 return True, response.json().get("obfuscated_email", None)
         except requests.RequestException:
             continue
-    return False, None
+    return False, response.text
 
 # Insta Command Handler
 async def insta_command(update: Update, context: ContextTypes.DEFAULT_TYPE):

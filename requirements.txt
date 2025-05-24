@@ -4,5 +4,5 @@ requests>=2.28.2
 gunicorn
 python-telegram-bot==20.6
 requests==2.31.0
-
+instaloader
 aiohttp==3.9.3

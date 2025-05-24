@@ -46,8 +46,7 @@ def estimate_year(user_id: int):
 # Get Instagram user info
 def get_instagram_info(username):
     url = f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}"
-    for _ in range(3):
-        proxy = random.choice(proxies_list)
+    for proxi in proxies_list:
         try:
             response = requests.get(url, headers=generate_headers(), proxies=proxy, timeout=20)
             if response.status_code == 200:

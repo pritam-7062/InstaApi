@@ -80,7 +80,7 @@ def get_instagram_info(username):
                 return info, None
         except Exception:
             continue
-    return None, "❌ Failed to fetch user info (check username or proxy access)"
+    return None, response.text
 
 # Fetch Instagram Reset Email (Masked)
 def fetch_reset_email(username_or_email):
@@ -112,7 +112,7 @@ def fetch_reset_email(username_or_email):
                     return False, json_resp.get("message", "No obfuscated email found.")
         except Exception:
             continue
-    return False, "Failed to fetch reset email info using proxies."
+    return False, response.text
 
 # Telegram Command Handlers
 async def insta_command(update: Update, context: ContextTypes.DEFAULT_TYPE):

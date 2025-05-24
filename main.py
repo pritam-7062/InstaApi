@@ -51,7 +51,7 @@ def get_instagram_info(username):
     for _ in range(3):  # Try 3 proxy attempts
         proxy = random.choice(proxies_list)
         try:
-            response = requests.get(url, headers=generate_headers(), timeout=30)
+            response = requests.get(url, headers=generate_headers(), proxies=proxytimeout=10)
             if response.status_code == 200:
                 user = response.json()["data"]["user"]
                 userid = int(user["id"])

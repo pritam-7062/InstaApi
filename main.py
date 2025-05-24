@@ -23,10 +23,14 @@ def generate_headers():
 
 # Webshare proxy list
 proxies_list = [
-    {"http": "http://bhcdwbbk-rotate:93ht6poh1443@p.webshare.io:80/", "https": "http://hxifftfr-rotate:h3ayfibgazbo@p.webshare.io:80/"},
-    {"http": "http://mdcpzjeo-rotate:r2eozqbb21b8@p.webshare.io:80/", "https": "http://bdpusfsa-rotate:mjs2uwp6m3u3@p.webshare.io:80/"},
+    {"http": "http://gglemtja-rotate:a0m16t677tmf@p.webshare.io:80/", "https": "http://wrfsjyrn-rotate:aurq4k93285j@p.webshare.io:80/"},
+    {"https": "http://bdpusfsa-rotate:mjs2uwp6m3u3@p.webshare.io:80/"},
     {"http": "http://xvcgftgw-rotate:9vm1bt8kvocy@p.webshare.io:80"},
     {"https": "http://xvcgftgw-rotate:9vm1bt8kvocy@p.webshare.io:80"},
+    {"http": "http://fepgpvaz-rotate:jyv905f8hjv3@p.webshare.io:80"},
+    {"https": "http://fepgpvaz-rotate:jyv905f8hjv3@p.webshare.io:80"}
+    {"http": "http://tyxgkhty-rotate:1bxkvycbytnq@p.webshare.io:80"},
+    {"https": "http://tyxgkhty-rotate:1bxkvycbytnq@p.webshare.io:80"}
 ]
 
 # Estimate account creation year
